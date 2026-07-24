@@ -1,0 +1,17 @@
+{
+  "feature_month": "2026-03",
+  "target_month": "2026-04",
+  "split_type": "client_grouped_holdout",
+  "precision_at_50_honest": 0.56,
+  "precision_at_50_random_split": 0.74,
+  "baseline_precision_at_50": 0.48,
+  "n_pages_test_set": 17196,
+  "n_pages_flagged": 3898,
+  "pct_flagged": 22.7,
+  "reason_code_counts": {
+    "stable_no_action": 13298,
+    "low_volume_low_confidence": 3733,
+    "high_decline_risk": 165
+  },
+  "known_limitation": "top-ranked high_decline_risk pages include a documented false-positive pattern (near-zero CTR at extreme positions) identified in Week 5 error analysis"
+}
