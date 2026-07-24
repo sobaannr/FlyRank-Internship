@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prioritizing Content Review Under Limited Capacity — A Search Data Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F2F1EC;
+    --paper-raised:#FFFFFF;
+    --ink:#1C2430;
+    --ink-soft:#4B5563;
+    --line:#DAD6CC;
+    --gold:#B9832B;
+    --gold-soft:#F1E4C9;
+    --teal:#1F6F78;
+    --teal-soft:#DCEBEC;
+    --red-flag:#A6402F;
+    --red-flag-soft:#F3DED8;
+    --max:820px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:17px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--gold-soft);}
+  a{color:var(--teal);text-decoration-thickness:1px;text-underline-offset:2px;}
+  a:hover{color:var(--red-flag);}
+
+  h1,h2,h3{font-family:'Source Serif 4',serif;font-weight:600;color:var(--ink);letter-spacing:-0.01em;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 24px;}
+  .wide{max-width:960px;margin:0 auto;padding:0 24px;}
+
+  /* ---------- HERO ---------- */
+  header.hero{
+    padding:96px 0 72px;
+    border-bottom:1px solid var(--line);
+    background:
+      radial-gradient(1200px 400px at 15% -10%, var(--gold-soft) 0%, transparent 60%),
+      var(--paper);
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin-bottom:18px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .eyebrow::before{content:'';width:22px;height:1px;background:var(--gold);}
+  h1.title{font-size:clamp(32px,5vw,48px);line-height:1.12;margin:0 0 20px;max-width:14ch;}
+  .subtitle{font-size:19px;color:var(--ink-soft);max-width:52ch;margin:0 0 32px;}
+  .byline{
+    font-size:14px;color:var(--ink-soft);
+    display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;
+    padding-top:24px;border-top:1px solid var(--line);
+  }
+  .byline b{color:var(--ink);font-weight:600;}
+
+  /* ---------- NAV ---------- */
+  nav.toc{
+    position:sticky;top:0;z-index:20;
+    background:rgba(242,241,236,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  nav.toc .wide{display:flex;gap:2px;overflow-x:auto;padding:0 24px;scrollbar-width:none;}
+  nav.toc .wide::-webkit-scrollbar{display:none;}
+  nav.toc a{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;letter-spacing:0.03em;
+    color:var(--ink-soft);text-decoration:none;white-space:nowrap;
+    padding:14px 10px;border-bottom:2px solid transparent;
+  }
+  nav.toc a:hover{color:var(--ink);border-bottom-color:var(--gold);}
+
+  /* ---------- SECTIONS ---------- */
+  section{padding:64px 0;border-bottom:1px solid var(--line);}
+  section:last-of-type{border-bottom:none;}
+  .section-num{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;color:var(--gold);
+    margin-bottom:10px;letter-spacing:0.05em;
+  }
+  h2.head{font-size:28px;margin:0 0 24px;}
+  p{margin:0 0 18px;}
+  ul,ol{margin:0 0 18px;padding-left:22px;}
+  li{margin-bottom:8px;}
+
+  .callout{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-left:3px solid var(--teal);
+    border-radius:4px;
+    padding:18px 20px;
+    margin:22px 0;
+    font-size:15.5px;
+  }
+  .callout.flag{border-left-color:var(--red-flag);}
+  .callout.flag .label{color:var(--red-flag);}
+  .callout .label{
+    font-family:'JetBrains Mono',monospace;font-size:11px;
+    text-transform:uppercase;letter-spacing:0.08em;color:var(--teal);
+    display:block;margin-bottom:6px;
+  }
+
+  table{width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;background:var(--paper-raised);}
+  caption{caption-side:top;text-align:left;font-size:13px;color:var(--ink-soft);margin-bottom:8px;font-family:'JetBrains Mono',monospace;}
+  th,td{padding:10px 14px;border:1px solid var(--line);text-align:left;}
+  th{background:var(--paper);font-family:'JetBrains Mono',monospace;font-size:12.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft);}
+  td.num{font-family:'JetBrains Mono',monospace;text-align:right;}
+  tr.win td{background:var(--teal-soft);}
+
+  code, .tag{
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.86em;
+    background:var(--paper);
+    border:1px solid var(--line);
+    padding:1px 6px;border-radius:4px;
+  }
+
+  /* ---------- SIGNATURE: LEAKAGE REVEAL ---------- */
+  .reveal{
+    background:var(--ink);
+    color:var(--paper);
+    border-radius:10px;
+    padding:36px 32px;
+    margin:28px 0;
+  }
+  .reveal-top{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:24px;flex-wrap:wrap;gap:12px;
+  }
+  .reveal-top .label{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#9CA8B5;}
+  .toggle-group{display:inline-flex;background:rgba(255,255,255,0.08);border-radius:20px;padding:3px;}
+  .toggle-btn{
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;
+    background:transparent;border:none;color:#9CA8B5;
+    padding:7px 16px;border-radius:16px;cursor:pointer;
+    transition:all 0.18s ease;
+  }
+  .toggle-btn.active{background:var(--gold);color:var(--ink);font-weight:700;}
+  .reveal-number{
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(48px,9vw,84px);
+    font-weight:700;line-height:1;
+    transition:color 0.25s ease;
+  }
+  .reveal-number.inflated{color:#E0A94F;}
+  .reveal-number.honest{color:#6FCF97;}
+  .reveal-sub{font-size:15px;color:#C7CFD6;max-width:48ch;margin-top:14px;}
+  .reveal-bar-wrap{margin-top:28px;height:10px;background:rgba(255,255,255,0.08);border-radius:5px;overflow:hidden;}
+  .reveal-bar{height:100%;border-radius:5px;transition:width 0.35s ease, background 0.25s ease;}
+
+  /* ---------- CHARTS (inline SVG, real numbers) ---------- */
+  .chart-card{background:var(--paper-raised);border:1px solid var(--line);border-radius:8px;padding:24px;margin:22px 0;}
+  .chart-title{font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);margin-bottom:16px;}
+  .legend{display:flex;gap:20px;margin-top:14px;font-size:13px;color:var(--ink-soft);flex-wrap:wrap;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{width:10px;height:10px;border-radius:2px;display:inline-block;}
+
+  /* ---------- REASON CODES ---------- */
+  .reason-grid{display:grid;grid-template-columns:1fr;gap:12px;margin:24px 0;}
+  .reason-card{
+    background:var(--paper-raised);border:1px solid var(--line);border-radius:6px;
+    padding:16px 18px;display:flex;gap:16px;align-items:flex-start;
+  }
+  .reason-count{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:20px;min-width:60px;color:var(--gold);}
+  .reason-body b{font-family:'JetBrains Mono',monospace;font-size:13.5px;}
+  .reason-body p{margin:4px 0 0;font-size:14.5px;color:var(--ink-soft);}
+
+  /* ---------- NO-GO ---------- */
+  .nogo{background:var(--red-flag-soft);border:1px solid #E3C2B8;border-radius:6px;padding:20px 22px;margin:22px 0;}
+  .nogo .label{color:var(--red-flag);font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;display:block;}
+  .nogo ul{margin-bottom:0;}
+
+  /* ---------- REPRO / FOOTER ---------- */
+  .repro-grid{display:grid;grid-template-columns:1fr;gap:10px;margin:20px 0;}
+  .repro-card{
+    background:var(--paper-raised);border:1px solid var(--line);border-radius:6px;
+    padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  }
+  .repro-card .path{font-family:'JetBrains Mono',monospace;font-size:13.5px;}
+  .repro-card .desc{font-size:13px;color:var(--ink-soft);}
+
+  footer.credit{
+    padding:56px 0 80px;
+    background:var(--ink);
+    color:var(--paper);
+  }
+  footer.credit h3{color:var(--paper);font-size:20px;margin-top:0;}
+  footer.credit p{color:#C7CFD6;font-size:15px;}
+  footer.credit a{color:#E0A94F;}
+  .footer-meta{margin-top:28px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.15);font-size:13px;color:#8A97A5;font-family:'JetBrains Mono',monospace;}
+
+  @media (max-width:600px){
+    header.hero{padding:64px 0 48px;}
+    section{padding:44px 0;}
+    .reveal{padding:26px 20px;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;scroll-behavior:auto !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Research Report · FlyRank ML Internship Capstone</div>
+    <h1 class="title">Prioritizing content review under limited capacity</h1>
+    <p class="subtitle">A search-data study on when a learned model earns its complexity — and when an honest validation split says it doesn't.</p>
+    <div class="byline">
+      <span><b>Sobaan</b></span>
+      <span>·</span>
+      <span>BS Computer Science, FAST-NUCES Karachi</span>
+      <span>·</span>
+      <span>July 2026</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wide">
+    <a href="#abstract">Abstract</a>
+    <a href="#intro">Introduction</a>
+    <a href="#data">Data</a>
+    <a href="#method">Methodology</a>
+    <a href="#results">Results</a>
+    <a href="#limits">Limitations</a>
+    <a href="#recs">Recommendations</a>
+    <a href="#repro">Reproducibility</a>
+    <a href="#credit">Credit</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <section id="abstract">
+    <div class="section-num">Abstract</div>
+    <h2 class="head">Five sentences, no padding</h2>
+    <p><b>Question:</b> given a large content inventory and a small review capacity each cycle, which pages should a reviewer look at first? <b>Method:</b> using FlyRank's 79-million-row search warehouse, I built a genuine prior-month-to-future-month decline label (March&nbsp;→&nbsp;April 2026) and compared a Random Forest classifier against a transparent CTR-vs-position-tier baseline rule, evaluated under a client-grouped holdout split so no client's pages appear in both train and test. <b>Result:</b> the baseline rule outperformed the Random Forest at both k=20 and k=50 — and a plain random split (no client grouping) inflated the model's own reported score from a genuine 0.560 to an illusory 0.740 Precision@50, a leakage effect I caught and corrected mid-project. <b>So what:</b> a well-targeted, interpretable rule beat a general-purpose classifier here, and the validation design mattered more to the final number than the choice of model. <b>Output:</b> a ranked, human-reviewed content action queue with reason codes, a documented false-positive pattern, and explicit no-go rules for what should never be automated.</p>
+  </section>
+
+  <section id="intro">
+    <div class="section-num">01 — Introduction</div>
+    <h2 class="head">The problem isn't finding declining pages. It's ranking them.</h2>
+    <p>Content teams don't lack data — they lack review capacity. A site with tens of thousands of pages might have bandwidth to manually review a few dozen per cycle. The question that matters isn't "which pages are declining?" in the abstract; it's <i>"of everything competing for a reviewer's next hour, what should they open first?"</i></p>
+    <p>This report treats that as a ranking problem, builds a baseline and a model to solve it, and — more importantly — treats the process of validating that solution as seriously as the solution itself. The most useful result in this project turned out to be catching my own model's inflated score before it went anywhere near a client.</p>
+    <div class="callout">
+      <span class="label">Decision supported</span>
+      Which pages a content reviewer opens first each cycle, using a ranked queue with reason codes — not an automated publishing or editing tool.
+    </div>
+  </section>
+
+  <section id="data">
+    <div class="section-num">02 — Data</div>
+    <h2 class="head">79M rows, one table, two months</h2>
+    <p>This study uses the <code>FlyRank/internship-warehouse</code> release on Hugging Face (build <code>flyrank_pseudonymized_warehouse_release_v20260703</code>), specifically the <code>fact_content_daily_performance</code> fact table — one row per content page per day, fully pseudonymized (hashed client and content IDs; no raw URLs, titles, or queries).</p>
+    <table>
+      <caption>Table / window summary</caption>
+      <tr><th>Item</th><th>Value</th></tr>
+      <tr><td>Feature window</td><td class="mono">March 2026 (month=2026-03)</td></tr>
+      <tr><td>Label window</td><td class="mono">April 2026 (month=2026-04)</td></tr>
+      <tr><td>Grain</td><td>one row = one page (content_hash_id) aggregated over its feature month</td></tr>
+      <tr><td>Filter</td><td>gsc_data_available IS TRUE, ≥50 impressions in feature month</td></tr>
+    </table>
+    <div class="callout flag">
+      <span class="label">Excluded, and why</span>
+      GA4-derived signals (sessions, engaged sessions) — GA4 coverage was only ~4.2% of rows in the feature month, so including them meant mostly filled zeros standing in for "unknown," which measurably hurt rather than helped the model. Any rebuilt FlyRank product flag (health_score, priority_score, action_type) was excluded on principle: these are the product's own decisions, not observable signals, and using them would let a model simply learn to copy an existing rule rather than find real signal.
+    </div>
+  </section>
+
+  <section id="method">
+    <div class="section-num">03 — Methodology</div>
+    <h2 class="head">What went in, and how it was tested</h2>
+    <p><b>Features</b> — four GSC-only, same-window signals, each knowable before the decision point: <code>impressions</code>, <code>clicks</code>, <code>avg_position</code>, <code>ctr</code>.</p>
+    <p><b>Label</b> — <code>is_declining</code>: future-month impressions fall more than 20% versus the feature month. A magnitude threshold, not "any decrease," to avoid flagging ordinary noise.</p>
+    <p><b>Baseline</b> — a transparent rule: score = (position-tier-expected CTR − page CTR) × log(1+impressions). Reason code <code>ctr_below_tier_expected</code>. This directly encodes the domain fact that raw CTR is mostly explained by position, so comparisons only make sense within a tier.</p>
+    <p><b>Model</b> — Random Forest (200 trees, depth 6, balanced class weight). Chosen because individual signal correlations with the label were all weak (max |0.16|) in earlier exploration — evidence the real pattern lives in feature <i>interactions</i>, which trees capture and a linear rule structurally cannot.</p>
+    <p><b>Validation</b> — client-grouped holdout (<code>GroupShuffleSplit</code> on client ID): no client's pages appear in both train and test. This single design choice turned out to be the most consequential decision in the whole project (see Results).</p>
+    <p><b>Leakage checks</b> — no product flags used anywhere; feature month never overlaps label month; <code>ctr</code> is derived only from feature-month data; client grouping closes the row-independence gap that a plain random split leaves open.</p>
+  </section>
+
+  <section id="results">
+    <div class="section-num">04 — Results</div>
+    <h2 class="head">The number that changed when I stopped cheating</h2>
+    <p>Before comparing model to baseline, here's the finding that shaped everything else in this report: the same model, same features, same label — scored very differently depending on how the test set was built.</p>
+
+    <div class="reveal">
+      <div class="reveal-top">
+        <span class="label">Precision@50 — same model, same data</span>
+        <div class="toggle-group" role="tablist" aria-label="Split comparison">
+          <button class="toggle-btn active" id="btn-inflated" onclick="showSplit('inflated')">Plain random split</button>
+          <button class="toggle-btn" id="btn-honest" onclick="showSplit('honest')">Client-grouped (honest)</button>
+        </div>
+      </div>
+      <div class="reveal-number inflated" id="reveal-num">0.740</div>
+      <div class="reveal-bar-wrap"><div class="reveal-bar" id="reveal-bar" style="width:74%;background:#E0A94F;"></div></div>
+      <div class="reveal-sub" id="reveal-sub">A plain 80/20 split lets pages from the same client land in both the training set and the test set. The model can partly recognize a client's own site patterns rather than learning a signal that generalizes — inflating the score without the model actually improving.</div>
+    </div>
+
+    <p>Once client leakage is closed, the honest number is <b>0.560</b> — a real 24% drop from the inflated figure. That's the number this report stands behind.</p>
+
+    <div class="chart-card">
+      <div class="chart-title">Model vs. baseline — honest client-grouped split</div>
+      <svg viewBox="0 0 560 220" style="width:100%;height:auto;" role="img" aria-label="Bar chart comparing baseline and model precision at k=20 and k=50">
+        <!-- axis -->
+        <line x1="60" y1="10" x2="60" y2="180" stroke="#DAD6CC" stroke-width="1"/>
+        <line x1="60" y1="180" x2="540" y2="180" stroke="#DAD6CC" stroke-width="1"/>
+        <text x="52" y="14" text-anchor="end" font-family="JetBrains Mono" font-size="11" fill="#4B5563">1.0</text>
+        <text x="52" y="98" text-anchor="end" font-family="JetBrains Mono" font-size="11" fill="#4B5563">0.5</text>
+        <text x="52" y="184" text-anchor="end" font-family="JetBrains Mono" font-size="11" fill="#4B5563">0.0</text>
+        <line x1="60" y1="95" x2="540" y2="95" stroke="#DAD6CC" stroke-width="0.5" stroke-dasharray="3,3"/>
+
+        <!-- k=20 group -->
+        <rect x="140" y="86" width="42" height="94" fill="#1F6F78"/>
+        <text x="161" y="79" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#1C2430" font-weight="700">0.55</text>
+        <rect x="188" y="98" width="42" height="82" fill="#B9832B"/>
+        <text x="209" y="91" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#1C2430" font-weight="700">0.50</text>
+        <text x="185" y="200" text-anchor="middle" font-family="Inter" font-size="12.5" fill="#4B5563">k = 20</text>
+
+        <!-- k=50 group -->
+        <rect x="340" y="93" width="42" height="87" fill="#1F6F78"/>
+        <text x="361" y="86" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#1C2430" font-weight="700">0.52</text>
+        <rect x="388" y="98" width="42" height="82" fill="#B9832B"/>
+        <text x="409" y="91" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#1C2430" font-weight="700">0.50</text>
+        <text x="385" y="200" text-anchor="middle" font-family="Inter" font-size="12.5" fill="#4B5563">k = 50</text>
+      </svg>
+      <div class="legend">
+        <span><span class="swatch" style="background:#1F6F78;"></span>Baseline (CTR-vs-tier rule)</span>
+        <span><span class="swatch" style="background:#B9832B;"></span>Random Forest (honest split)</span>
+      </div>
+    </div>
+
+    <table>
+      <caption>Full results table</caption>
+      <tr><th>Method</th><th class="num">Precision@20</th><th class="num">Precision@50</th></tr>
+      <tr class="win"><td>Baseline (CTR-vs-tier rule)</td><td class="num">0.55</td><td class="num">0.52</td></tr>
+      <tr><td>Random Forest (honest split)</td><td class="num">0.50</td><td class="num">0.50</td></tr>
+    </table>
+
+    <p><b>The baseline wins, and that's the honest finding.</b> Error analysis on the model shows why: its top false-positive pattern is pages with expected-low CTR at extreme positions (very strong or very weak) — cases the baseline correctly treats as normal (because it's tier-normalized) but the model, using raw CTR, flags as alarming. The model's added complexity has not yet earned its keep on this feature set.</p>
+  </section>
+
+  <section id="limits">
+    <div class="section-num">05 — Limitations</div>
+    <h2 class="head">What this cannot claim</h2>
+    <ul>
+      <li><b>Observational, not causal.</b> No claim that refreshing a page causes recovery — that requires an actual experiment.</li>
+      <li><b>One month-pair.</b> March→April 2026 only; not yet validated across seasons or other periods.</li>
+      <li><b>GSC-only features.</b> GA4 engagement excluded due to ~4% coverage — results say nothing about on-page engagement.</li>
+      <li><b>Label doesn't rule out consolidation, seasonality, or tracking anomalies.</b> Several flagged pages in manual review looked more like data artifacts (near-zero clicks at strong position) than genuine content problems.</li>
+      <li><b>Known false-positive pattern.</b> The model over-flags pages with expected-low CTR at extreme positions, since it doesn't tier-normalize CTR the way the baseline does.</li>
+      <li><b>The baseline currently wins.</b> This report does not claim the model is the better tool for this task, as built.</li>
+    </ul>
+  </section>
+
+  <section id="recs">
+    <div class="section-num">06 — Ranked recommendations</div>
+    <h2 class="head">The action queue, and what a human must check first</h2>
+    <p>Pages are grouped into three reason codes. Every recommendation requires human review before any action — none of this is meant to run unattended.</p>
+    <div class="reason-grid">
+      <div class="reason-card">
+        <div class="reason-count">A</div>
+        <div class="reason-body"><b>ctr_below_tier_expected → review_metadata_or_snippet</b>
+          <p>Baseline-driven. CTR sits meaningfully below its position tier's average. Most trustworthy category — directly grounded in the stronger-performing rule.</p></div>
+      </div>
+      <div class="reason-card">
+        <div class="reason-count">B</div>
+        <div class="reason-body"><b>high_decline_risk → priority_content_review</b>
+          <p>Model-driven. High predicted decline probability. Known to include some false positives at extreme positions — treat with the review checklist below before acting.</p></div>
+      </div>
+      <div class="reason-card">
+        <div class="reason-count">C</div>
+        <div class="reason-body"><b>low_volume_low_confidence → monitor_only</b>
+          <p>Flagged, but under 200 impressions — real signal is hard to separate from noise at this volume. Watch next cycle rather than act now.</p></div>
+      </div>
+    </div>
+
+    <p><b>Before acting on any recommendation, a human should check:</b></p>
+    <ol>
+      <li>Whether a sibling page targeting the same query absorbed the traffic (consolidation), not a real decline.</li>
+      <li>Whether the drop matches a known seasonal pattern for that topic, rather than a page-specific issue.</li>
+      <li>For near-zero-click pages at strong position — verify the impression count looks real before treating it as a content problem; it may be a tracking artifact.</li>
+    </ol>
+
+    <div class="nogo">
+      <span class="label">Should never be automated</span>
+      <ul>
+        <li>Auto-publishing content changes based on score alone.</li>
+        <li>Auto-generating and auto-publishing titles/meta descriptions without human review.</li>
+        <li>Treating a flag as a quality judgment — it's a review priority signal, not proof the page is bad.</li>
+        <li>Any client-facing claim that this system "predicts" or "proves" future performance. It produces observed, directional, decision-support rankings only.</li>
+      </ul>
+    </div>
+
+    <p><b>Monitoring / retrain trigger:</b> re-run this pipeline on a fresh month-pair quarterly; if Precision@50 drops more than ~0.10 below this report's 0.52 baseline, treat the ranking as stale and investigate before continued use.</p>
+  </section>
+
+  <section id="repro">
+    <div class="section-num">07 — Reproducibility</div>
+    <h2 class="head">Everything here can be rerun</h2>
+    <p>All notebooks, the full pipeline, and this report's source live in the public repository below. Each weekly notebook is independently runnable against the same Hugging Face warehouse release cited in Section 2.</p>
+    <div class="repro-grid">
+      <div class="repro-card"><span class="path">work/notebooks/capstone.ipynb</span><span class="desc">This report's source — question through artifacts</span></div>
+      <div class="repro-card"><span class="path">work/notebooks/w03_data_contract.ipynb</span><span class="desc">Data contract, grain, availability checks</span></div>
+      <div class="repro-card"><span class="path">work/notebooks/w05_model.ipynb</span><span class="desc">Model training, feature importance, error analysis</span></div>
+      <div class="repro-card"><span class="path">work/notebooks/w06_validation_audit.ipynb</span><span class="desc">The leakage catch — before/after split comparison</span></div>
+      <div class="repro-card"><span class="path">work/notebooks/w07_action_playbook.ipynb</span><span class="desc">Ranked queue, reason codes, no-go list</span></div>
+      <div class="repro-card"><span class="path">work/outputs/capstone_metrics.json</span><span class="desc">Numeric receipts for every figure in this report</span></div>
+    </div>
+    <p>Repository: <a href="https://github.com/sobaannr/FlyRank-Internship" target="_blank" rel="noopener">github.com/sobaannr/FlyRank-Internship</a></p>
+  </section>
+
+</main>
+
+<footer class="credit" id="credit">
+  <div class="wrap">
+    <h3>Acknowledgments &amp; data credit</h3>
+    <p>Built on the FlyRank ML Internship dataset — a pseudonymized, public-safe search warehouse release used under the internship's stated evidence and privacy standards. All identifiers in this report are hashed; no client names, domains, or raw queries appear anywhere in this work.</p>
+    <p>Learn more about the program at <a href="https://flyrank.ai" target="_blank" rel="noopener">flyrank.ai</a>.</p>
+    <div class="footer-meta">Sobaan · FAST-NUCES Karachi · July 2026 · github.com/sobaannr/FlyRank-Internship</div>
+  </div>
+</footer>
+
+<script>
+  function showSplit(which){
+    const num = document.getElementById('reveal-num');
+    const bar = document.getElementById('reveal-bar');
+    const sub = document.getElementById('reveal-sub');
+    const btnI = document.getElementById('btn-inflated');
+    const btnH = document.getElementById('btn-honest');
+    if(which === 'inflated'){
+      num.textContent = '0.740';
+      num.className = 'reveal-number inflated';
+      bar.style.width = '74%';
+      bar.style.background = '#E0A94F';
+      sub.textContent = 'A plain 80/20 split lets pages from the same client land in both the training set and the test set. The model can partly recognize a client\'s own site patterns rather than learning a signal that generalizes — inflating the score without the model actually improving.';
+      btnI.classList.add('active'); btnH.classList.remove('active');
+    } else {
+      num.textContent = '0.560';
+      num.className = 'reveal-number honest';
+      bar.style.width = '56%';
+      bar.style.background = '#6FCF97';
+      sub.textContent = 'With client identity properly held out — no client\'s pages appear in both train and test — the model\'s real Precision@50 is 0.560. Lower than the inflated number, but this is the score that actually reflects generalization, and the one reported everywhere else in this document.';
+      btnH.classList.add('active'); btnI.classList.remove('active');
+    }
+  }
+</script>
+
+</body>
+</html>
